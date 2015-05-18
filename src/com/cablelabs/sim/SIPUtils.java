@@ -427,9 +427,11 @@ public class SIPUtils {
 			// For realm we use the value in the domain setting
 			String realm = src.getProperty(SettingConstants.DOMAIN);
 			String passwd = src.getProperty(SettingConstants.PASSWORD);
-			header.setRealm(realm);
+			
 			String nonceVal = null;
 			if (wwwAH != null) {
+				realm = wwwAH.getRealm();
+				header.setRealm(realm);
 				nonceVal = wwwAH.getNonce();
 				header.setNonce(wwwAH.getNonce());
 

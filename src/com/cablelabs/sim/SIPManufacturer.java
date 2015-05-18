@@ -575,7 +575,9 @@ public class SIPManufacturer {
 	 * @return - SIP Invite message
 	 * @throws IllegalStateException
 	 */
-	public Request buildInvite(Send send, SIPRoute rte, NetworkElements nes) throws IllegalStateException {
+	public Request buildInvite(Send send, SIPRoute rte, int fsmUID,
+			Request req, Response prevResp, 
+			NetworkElements nes, boolean includeDigest, int curMsgIndex) throws IllegalStateException {
 
 		if (rte.dest == null || rte.src == null) {
 			String msg = "A properties file has not been properly loaded. dest=" 
@@ -585,17 +587,33 @@ public class SIPManufacturer {
 		}
 		
 		try {
-			
+			boolean checkAuthorization = false; // added by IOL
 			String method = Request.INVITE;
-
-			// create >From Header
-			String fromTag = SIPDistributor.createTag(); 
-			FromHeader fromHeader = utils.createFromHeader(rte.src, rte.localPort, fromTag);
-
+ 
+			/*****  Changes made below by IOL ****/
+			FromHeader fromHeader = null;
+			ToHeader toHeader = null;
+			if (req == null) {
+				// create From Header
+				String fromTag = SIPDistributor.createTag();
+				// Don't base the From and To on the Domain but the Address Format setting
+//				fromHeader = utils.createDomainFromHeader(rte.src, rte.peerPort, fromTag);
+//				// create To Header
+//				toHeader = utils.createDomainToHeader(rte.src, null, false, rte.peerPort);
+				
+				fromHeader = utils.createFromHeader(rte.src, rte.localPort, fromTag);
+				// create To Header
+				toHeader = utils.createToHeader(rte.src, null, false, rte.peerPort);
+			}
+			else {
+				fromHeader = (FromHeader)req.getHeader(FromHeader.NAME);
+				toHeader = (ToHeader)req.getHeader(ToHeader.NAME);
+				ToHeader respToHeader = (ToHeader)prevResp.getHeader(ToHeader.NAME);
+				if (respToHeader != null)
+					toHeader.setTag(respToHeader.getTag());
+			}
+			/*****  Changes made above by IOL ****/
 			
-			// create To Header
-			ToHeader toHeader = utils.createToHeader(rte.dest, null, false, rte.peerPort);
-
 			// create Request URI
 			// GLH ADDR
 			Properties platform = SystemSettings.getSettings(SettingConstants.PLATFORM);
@@ -649,9 +667,17 @@ public class SIPManufacturer {
 			// Create ContentTypeHeader
 			ContentTypeHeader contentTypeHeader = utils.createContentTypeHeader(null, null);
 			
+			/*****  Changes made below by IOL ****/
 			// Create a new CallId header
-			CallIdHeader callIdHeader = utils.createCallIdHeader(rte.dest, 
-					rte.provider);
+			CallIdHeader callIdHeader = null;
+			if (req == null) {
+				callIdHeader = utils.createCallIdHeader(rte.dest, rte.provider);
+			}
+			else {
+				callIdHeader = (CallIdHeader)req.getHeader(CallIdHeader.NAME);
+				checkAuthorization = true;
+			}
+			/*****  Changes made above by IOL ****/
 
 			// Create a new MaxForwardsHeader
 			MaxForwardsHeader maxForwards = utils.createMaxForwardsHeader(maxHops-hops);
@@ -755,6 +781,40 @@ public class SIPManufacturer {
 			Header pcpi = utils.createPCalledPartyID(rte.dest);
 			if (pcpi != null) 
 				request.addHeader(pcpi);
+			
+			/*****  Changes made below by IOL ****/
+			// Next see if previous response to register was 401
+			WWWAuthenticateHeader wwwAH = null;
+			AuthorizationHeader ah = null;
+			MsgEvent respEvent = q.find(fsmUID, "Response", 
+								MsgQueue.LAST, curMsgIndex);
+			Response resp = ((SIPMsg)respEvent).getResponse();
+			if (respEvent != null && respEvent instanceof SIPMsg && checkAuthorization) {
+				
+				if (resp.getStatusCode() == 401)
+					wwwAH = (WWWAuthenticateHeader)resp.getHeader(WWWAuthenticateHeader.NAME);
+				// If we received a 200 response last time, we want to send the same
+				// Authorization we sent in the previous REGISTER
+				else if (resp.getStatusCode() == 200) {
+					ah = (AuthorizationHeader)req.getHeader(AuthorizationHeader.NAME);
+				}
+				else
+					wwwAH = (WWWAuthenticateHeader)resp.getHeader(WWWAuthenticateHeader.NAME);
+			}	 
+			wwwAH = (WWWAuthenticateHeader)resp.getHeader(WWWAuthenticateHeader.NAME);
+						
+			// If we didn't have a 200 response last time, then
+			// we need to create a new Authorization header
+			if (ah == null) {
+				int cSeqNo = cSeqHeader.getSequenceNumber();
+				ah = utils.createAuthorizationHeader(method, rte.src, 
+					cSeqNo, null, wwwAH);
+			}
+			
+			if (ah != null) {
+				request.addHeader(ah);
+			}	
+			/*****  Changes made above by IOL ****/
 			
 			return request;
 		}

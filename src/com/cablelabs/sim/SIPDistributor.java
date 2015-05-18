@@ -989,7 +989,13 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 		try {
 
 			if (uri.isSipURI())
+			{
 				username = ((SipURI)uri).getUser();
+				/* just in case. changed by IOL */
+				if(username == null)
+					username = ((SipURI)uri).getHost();
+
+			}
 			else if (uri instanceof TelURL) 
 				username = ((TelURL)uri).getPhoneNumber();
 			else if (uri instanceof GenericURI)
@@ -1341,6 +1347,7 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 		boolean regOperation = false;
 		boolean usedRequestURI = false;
 		boolean presenceReq = false;
+		boolean options = false; // IOL added options flag to send options to registrar listener
 		String subscribeType = null;
 
 		if (reqMethod.equals(Request.REGISTER)) {
@@ -1398,13 +1405,16 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 		else {
 			if (reqMethod.equals(Request.INVITE))
 				invite = true;
+			if (reqMethod.equals(Request.OPTIONS)) // IOL added options flag to send options to registrar listener
+				options = true;
 			uri = getUserName(request.getRequestURI());
 			usedRequestURI = true;
 		}
+		
 		if (uri != null) {
 			pui = filterURI(uri);
 			if (listener == null) {
-				if (regOperation) {
+				if (regOperation || options) {// IOL added options flag to send options to registrar listener
 					listenerKey = Stacks.getRegistrarKey(PC2Protocol.SIP, localAddress, pui);
 					listener = Stacks.getRegistrarListener(PC2Protocol.SIP, localAddress, pui);
 					registrarListener = true;
@@ -1444,7 +1454,7 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 			}
 
 			try {
-				if (sipData != null && listener != null) {
+				if (sipData != null && listener != null) { 
 					SIPMsg msg = null;
 					if (invite && toTag != null && !duplicate) {
 						msg = new SIPMsg(listener.getFsmUID(), System.currentTimeMillis(), 
@@ -1477,7 +1487,8 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 					String origToTag = null;
 					// We need to save the To tag and identify whether this dialog
 					// was initiated by the SS or not for future processing.
-					if (reqMethod.equals(Request.INVITE) ||
+					if (reqMethod.equals(Request.OPTIONS) || // IOL trying to catch out of dialog options
+							reqMethod.equals(Request.INVITE) ||
 							reqMethod.equals(Request.SUBSCRIBE) ||
 							reqMethod.equals(Request.REFER)) {
 						SIPMsg origMsg = q.findByCallId(listener.getFsmUID(), callId);
@@ -1528,7 +1539,8 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 
 					// Determine if this new request is inside or outside an existing dialog 
 					if (!dialogFormingRequest) {
-						if (reqMethod.equals(Request.OPTIONS) ||
+						if (/*reqMethod.equals(Request.OPTIONS) || */ // IOL moved to above statement
+																	  // to catch options
 								reqMethod.equals(Request.PUBLISH)) {
 							SIPMsg origMsg = q.findByCallId(listener.getFsmUID(), callId);
 							if (origMsg != null ) {
@@ -2434,14 +2446,61 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 			String src = getSourceLabel(s,nes);
 			SIPRoute rte = new SIPRoute(stack, provider, s, src, getTransport(provider));
 
+			/*****  Changes made below by IOL ****/
+			Request request = null;
+			boolean includeDigest = false;
+			SIPMsg origReq = (SIPMsg)s.getRequest();
+			
+			Request req = null;
+			Response prevResp = null;
+			PC2SipData sipData = null;
+			if (origReq != null) {
+				req = origReq.getRequest();
+				String key = origReq.getDialogKey();
+				sipData = db.get(key);
+				MsgQueue q = MsgQueue.getInstance();
+				MsgEvent response = q.find(fsm.getFsmUID(), "xxx-INVITE", 
+						MsgQueue.LAST, fsm.getCurrentMsgIndex());
+				System.err.println("here\n");
+				if (response != null && 
+						response instanceof SIPMsg && req != null &&
+						response.getMsgQueueIndex() > origReq.getMsgQueueIndex()) {
+					// Now test if the response is a 401 or a 200, in which case we want to
+					// reuse information from the Authorization header
+					SIPMsg sm = (SIPMsg)response;
+					if (sm.getEventName().equals("401-INVITE"))
+						prevResp = ((SIPMsg)response).getResponse();
+					else if (sm.getEventName().equals("200-INVITE")) {
+						prevResp = ((SIPMsg)response).getResponse();
+						// In the case of 200 response we also want to
+						// change the origReq variable to be the last
+						// Register sent
+						//MsgEvent lastReg = q.find(fsm.getFsmUID(), "REGISTER", MsgQueue.LAST);
+						//if (lastReg != null && lastReg instanceof SIPMsg) {
+						//	req = ((SIPMsg)lastReg).getRequest();
+						//}
+						System.err.println("here\n");
+					}
+				}
+			}
 
-			Request request = manufacturer.buildInvite(s, rte, nes);
+			// Update the route to use the pre-determined port from previous
+			// communications for this dialog
+			rte.setPeerPort(sipData);
+
+			// Build the request
+			request = manufacturer.buildInvite(s, rte,  
+					fsm.getFsmUID(), req, prevResp, nes, includeDigest, 
+					fsm.getCurrentMsgIndex());
+			
+			/*****  Changes made above by IOL ****/
+			
 			if (request != null) {
 				String modMsg = manufacturer.modifyMessage(fsm.getFsmUID(), 
 						s.getModifiers(), request, s.isCompact());
 
 
-				PC2SipData sipData = getSipData(request, rte, false);
+				sipData = getSipData(request, rte, false);
 				updateSipData(sipData, fsm, modMsg, rte);
 				sipData.getSessionVersion();
 
