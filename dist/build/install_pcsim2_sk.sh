@@ -1,6 +1,6 @@
 #!/bin/bash
 
-outfile="IZPACK_JAR_FILE_NAME"
+outfile="PCSim2_installer-1.0-beta_1.jar"
 
 if [ "$1" == "self-install" ]; then
 	dn=`dirname $0`
