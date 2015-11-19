@@ -5,7 +5,7 @@ Class-Path: ../lib/bns_common.jar ../lib/bns_diameter.jar ../lib/bns_logger.jar 
  
 Name: com/cablelabs/sim/
 Specification-Title: PCSim 2.0
-Specification-Version: 1.0.0-beta
+Specification-Version: 1.1-UNH-IOL
 Specification-Vendor: Open Source 
 Implementation-Title: com.cablelabs.sim
 Implementation-Version: 8387

@@ -80,7 +80,7 @@ public class PC2UI extends JFrame implements PC2UIControls,
 	
 //	protected JFrame controlFrame = null;
 //	protected PC2ImagePane logoPane = null;
-	public static String version = "1.0-beta";
+	public static String version = "1.1-UNH-IOL";
 	public static String vendor = "Open Source";
 	public static String build = "test-build";
 	/**

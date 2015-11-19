@@ -85,10 +85,10 @@ WindowListener, WindowStateListener, WindowFocusListener, MouseListener, ActionL
 	final protected static String subCat = "";
 //	protected static LinkedList<Process> children = new LinkedList<Process>();
 
-	public static String version = "1.0-beta";
-	public static String vendor = "Cable Television Laboratories, Inc.";
+	public static String version = "1.1-UNH-IOL";
+	//public static String vendor = "Cable Television Laboratories, Inc.";
 	public static String build = "test-build";
-
+	
 	// Modify Table
 	protected ModifyTable mtable = null;
 	
