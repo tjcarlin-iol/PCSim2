@@ -18,7 +18,7 @@
 		. to build pcsim2 jar only, installer/exe would not be built
 			ant pcsim2 
 -->
-<project name="PCSim2" default="build" basedir=".">
+<project name="PCSim2" default="pcsim2" basedir=".">
 
 	<target name="init_props">
 		<property name="src_dir" value="${basedir}/src"/>
@@ -44,7 +44,7 @@
 
 
 		<property name="parser_jar" value="${bin_dir}/pc2_parser-0.1.jar"/>
-		<property name="main_jar" value="${bin_dir}/PC_Sim2-1.0-beta_1.jar"/>
+		<property name="main_jar" value="${bin_dir}/PCSim2-IOL.jar"/>
 		<property name="common_jar" value="${lib_dir}/bns_common.jar"/>
 		<property name="stun_jar" value="${lib_dir}/bns_stun_protocol.jar"/>
 		<property name="utility_jar" value="${lib_dir}/bns_utility_protocol.jar"/>
