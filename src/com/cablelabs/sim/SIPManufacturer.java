@@ -1148,7 +1148,7 @@ public class SIPManufacturer {
 			if (eh != null)
 				request.addHeader(eh);
 			
-			SubscriptionStateHeader ss = utils.createSubscriptionStateHeader("active", 600000);
+			SubscriptionStateHeader ss = utils.createSubscriptionStateHeader("active", 60);
 			if (ss != null)
 				request.addHeader(ss);
 			
@@ -1351,7 +1351,7 @@ public class SIPManufacturer {
 					ContentTypeHeader cth = utils.createContentTypeHeader("application", "dialog-info+xml");
 					request.setContent(body, cth);
 					
-					SubscriptionStateHeader ss = utils.createSubscriptionStateHeader("active", 600000);
+					SubscriptionStateHeader ss = utils.createSubscriptionStateHeader("active", 60);
 					if (ss != null)
 						request.addHeader(ss);
 					
@@ -2306,7 +2306,7 @@ public class SIPManufacturer {
 					rte.localAddress, rte.localPort, false);
 			
 			
-			contactHeader.setParameter("expires", "600000");
+			contactHeader.setParameter("expires", "60");
 			// Add sip instance parameter if GRUU is not disabled.
 			if (useGRUU) {
 				String uuid = rte.src.getProperty(SettingConstants.UUID);
@@ -2440,7 +2440,7 @@ public class SIPManufacturer {
 					if (contactHeader != null) {
 						int expires = contactHeader.getExpires();
 						if (expires < 0)
-							contactHeader.setExpires(600000);
+							contactHeader.setExpires(60);
 						response.addHeader(contactHeader);
 						
 					}
@@ -2835,11 +2835,11 @@ public class SIPManufacturer {
 							response.addHeader(sim);
 					}
 					ExpiresHeader eh = request.getExpires();
-					int expires = 600000;
+					int expires = 60;
 					if (eh != null) {
 						int reqExpires = eh.getExpires();
 						if (reqExpires > 0) {
-							if (reqExpires < 600000) {
+							if (reqExpires < 60) {
 								expires = reqExpires;
 							}
 						}
@@ -2859,11 +2859,11 @@ public class SIPManufacturer {
 						response.addHeader(set);
 				}
 				ExpiresHeader eh = request.getExpires();
-				int expires = 600000;
+				int expires = 60;
 				if (eh != null) {
 					int reqExpires = eh.getExpires();
 					if (reqExpires > 0) {
-						if (reqExpires < 600000) {
+						if (reqExpires < 60) {
 							expires = reqExpires;
 						}
 					}

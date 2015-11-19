@@ -1352,7 +1352,10 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 
 		if (reqMethod.equals(Request.REGISTER)) {
 			FromHeader from = (FromHeader)request.getHeader(FromHeader.NAME);
-			uri = from.getAddress().getURI().toString();
+			if(from.getAddress().getURI().isSipURI())
+				uri = ((SipURI)from.getAddress().getURI()).getHost(); //IOL changing to fix Reg after Options
+			else
+				uri = from.getAddress().getURI().toString();
 			regOperation = true;
 		}
 		else if (reqMethod.equals(Request.SUBSCRIBE)) {
@@ -1415,6 +1418,7 @@ public class SIPDistributor implements Distributor, SipListener, GinRegistration
 			pui = filterURI(uri);
 			if (listener == null) {
 				if (regOperation || options) {// IOL added options flag to send options to registrar listener
+					System.err.println("might be an option");
 					listenerKey = Stacks.getRegistrarKey(PC2Protocol.SIP, localAddress, pui);
 					listener = Stacks.getRegistrarListener(PC2Protocol.SIP, localAddress, pui);
 					registrarListener = true;

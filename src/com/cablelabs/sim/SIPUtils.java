@@ -897,7 +897,7 @@ public class SIPUtils {
 	 */
 	protected ExpiresHeader createExpiresHeader(Integer value) throws ParseException {
 		ExpiresHeader header = null;
-		int expires = 600000;
+		int expires = 60;
 		if (value != null)
 			expires = value;
 
